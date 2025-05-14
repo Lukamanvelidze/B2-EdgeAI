@@ -1,6 +1,8 @@
 # B2-EdgeAI
 programming project of group B2 in EdgeAI
 
+this readme file is meant for the participants of the group.
+
 step 1. 
 use frame extractor in validate/S02 and validate/S05 file to transform video to png files.
 
