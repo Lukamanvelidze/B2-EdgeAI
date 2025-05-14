@@ -1,0 +1,20 @@
+train: ~/Documents/mva/mva/mva/data/images/train
+val: ~Documents/mva/mva//mva/data/images/val
+nc: 16
+names:
+  0: "bike"
+  1: "bus"
+  2: "caravan"
+  3: "coupe"
+  4: "crossover"
+  5: "hatchback"
+  6: "jeep"
+  7: "mpv"
+  8: "pickup-truck"
+  9: "sedan"
+  10: "suv"
+  11: "taxi"
+  12: "truck"
+  13: "van"
+  14: "vehicle"
+  15: "wagon"
