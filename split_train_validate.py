@@ -83,7 +83,7 @@ def split_dataset_within_each_cxx(root_dir, train_ratio=0.8, image_exts=('.jpg',
                 print(f"      Moved {os.path.basename(img_src)} to {img_val}")
                 print(f"      Moved {os.path.basename(lbl_src)} to {lbl_val}")
 
-            print(f"✅ {s_folder}/{c_folder}: {len(train_pairs)} training, {len(val_pairs)} validation samples")
+            print(f" {s_folder}/{c_folder}: {len(train_pairs)} training, {len(val_pairs)} validation samples")
 # USAGE EXAMPLE
 if __name__ == "__main__":
     dataset_root = "/home/luka/Desktop/AIC_2023_Track2/AIC23_Track2_NL_Retrieval/data/validation"  # CHANGE THIS TO YOUR PATH!
