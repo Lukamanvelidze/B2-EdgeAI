@@ -35,5 +35,5 @@ default = "global-deployment"
 options.num-supernodes = 2
 
 [tool.flwr.federations.global-deployment]
-address = "149.233.55.34"
+address = "149.233.55.34:8080"
 insecure = true
