@@ -1,20 +1,9 @@
-train: ~/Documents/mva/mva/mva/data/images/train
-val: ~Documents/mva/mva//mva/data/images/val
+train: /home/catmub/Documents/project/mva/mva/mva/data/mvadata/images/train
+val: /home/catmub/Documents/project/mva/mva/mva/data/mvadata/images/val
+
 nc: 16
-names:
-  0: "bike"
-  1: "bus"
-  2: "caravan"
-  3: "coupe"
-  4: "crossover"
-  5: "hatchback"
-  6: "jeep"
-  7: "mpv"
-  8: "pickup-truck"
-  9: "sedan"
-  10: "suv"
-  11: "taxi"
-  12: "truck"
-  13: "van"
-  14: "vehicle"
-  15: "wagon"
+names: [
+  "bike", "bus", "caravan", "coupe", "crossover", "hatchback", "jeep", "mpv",
+  "pickup-truck", "sedan", "suv", "taxi", "truck", "van", "vehicle", "wagon"
+]
+#/home/catmub/Documents/project/mva/mva/mva/data/mvadata/data.yaml
