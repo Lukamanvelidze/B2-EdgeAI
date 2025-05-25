@@ -1,7 +1,7 @@
 """MVA: A Flower / PyTorch app."""
 
 import torch
-
+import flwr as fl
 from flwr.client import ClientApp, NumPyClient
 from flwr.common import Context
 from mva.task import Net, get_weights, load_data, set_weights, test, train
@@ -18,18 +18,24 @@ class FlowerClient(NumPyClient):
         
 
     def fit(self, parameters, config):
+        print("🚀 Starting fit()")
         set_weights(self.net, parameters)
+        print("📦 Weights set, starting training")
+
         train_loss = train(
             self.net,
-            self.trainloader,  # can be None
+            self.trainloader,
             self.local_epochs,
             self.device,
         )
+
+        print("✅ Training done, returning updated weights")
         return (
             get_weights(self.net),
-            self.net.dataset_size,  # Use dummy size from Net
+            self.net.dataset_size,
             {"train_loss": train_loss},
         )
+
 
 
     def evaluate(self, parameters, config):
@@ -52,6 +58,18 @@ def client_fn(context: Context):
 
 
 # Flower ClientApp
-app = ClientApp(
-    client_fn,
-)
+#app = ClientApp(
+#    client_fn,
+#)
+
+def main():
+    net = Net()
+    trainloader, valloader = None, None  # or real loaders if available
+    fl.client.start_client(
+            server_address="34.32.19.37:8080",
+        client=FlowerClient(net, trainloader, valloader, local_epochs=1).to_client(),
+    )
+if __name__ == "__main__":
+    main()
+
+#server_address="149.233.55.34:9092",

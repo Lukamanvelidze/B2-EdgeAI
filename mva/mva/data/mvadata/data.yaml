@@ -1,5 +1,5 @@
-train: /home/catmub/Documents/project/mva/mva/mva/data/mvadata/images/train
-val: /home/catmub/Documents/project/mva/mva/mva/data/mvadata/images/val
+train: ./images/train
+val: ./images/val
 
 nc: 16
 names: [

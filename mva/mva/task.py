@@ -14,7 +14,7 @@ import os
 
 class Net:
     def __init__(self):
-        self.config_path = "/home/catmub/Documents/project/mva/mva/mva/data/mvadata/data.yaml"
+        self.config_path = "./data/mvadata/data.yaml"
 
         # Load model architecture from YAML (custom with nc=16)
         self.model = YOLO("yolo11n.yaml")

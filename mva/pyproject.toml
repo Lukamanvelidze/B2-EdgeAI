@@ -37,3 +37,7 @@ default = "local-simulation"
 
 [tool.flwr.federations.local-simulation]
 options.num-supernodes = 1
+
+[tool.flwr.federations.global-deployment]
+address = "34.32.19.37:8080"
+insecure = true
