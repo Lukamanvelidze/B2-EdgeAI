@@ -9,8 +9,8 @@ description = ""
 license = "Apache-2.0"
 dependencies = [
     "flwr[simulation]>=1.11.1",
-    "torch==2.6.0", 
-    "torchvision==0.21.0",
+    "torch==2.4.1", 
+    "torchvision==0.19.1",
     "ultralytics",
     # this from this part the dependency is only for my laptop, uncomment the one above and comment out the one below here
     #"flwr",
