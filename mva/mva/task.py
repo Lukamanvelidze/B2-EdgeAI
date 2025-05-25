@@ -7,8 +7,8 @@ import torch
 #import torch.nn.functional as F
 #from flwr_datasets import FederatedDataset
 #from flwr_datasets.partitioner import IidPartitioner
-from torch.utils.data import DataLoader
-from torchvision.transforms import Compose, Normalize, ToTensor
+#from torch.utils.data import DataLoader
+#from torchvision.transforms import Compose, Normalize, ToTensor
 from ultralytics import YOLO
 import os
 
@@ -69,20 +69,16 @@ def get_weights(net):
     return [val.cpu().numpy() for _, val in net.model.model.state_dict().items()]
 
 def set_weights(net, parameters):
-    model_keys = list(net.model.model.state_dict().keys())
+    model_state = net.model.model.state_dict()
+    model_keys = list(model_state.keys())
     params_dict = dict(zip(model_keys, parameters))
 
-    # Filtered state_dict: only load weights with matching shapes
-    filtered_state_dict = OrderedDict()
-    for k, v in params_dict.items():
-        try:
-            tensor = torch.tensor(v)
-            if net.model.model.state_dict()[k].shape == tensor.shape:
-                filtered_state_dict[k] = tensor
-            else:
-                print(f"Skipping {k}: shape mismatch {tensor.shape} != {net.model.model.state_dict()[k].shape}")
-        except Exception as e:
-            print(f"Skipping {k}: error converting or checking shape. Error: {e}")
-
-    net.model.model.load_state_dict(filtered_state_dict, strict=False)
-
+    with torch.no_grad():  # Ensure we're not in inference mode
+        for k, v in params_dict.items():
+            try:
+                if k in model_state and model_state[k].shape == torch.tensor(v).shape:
+                    model_state[k].copy_(torch.tensor(v))
+                else:
+                    print(f"⚠️ Skipping {k}: shape mismatch or missing")
+            except Exception as e:
+                print(f"⚠️ Skipping {k}: {e}")
