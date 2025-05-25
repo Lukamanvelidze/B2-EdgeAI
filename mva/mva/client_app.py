@@ -66,7 +66,7 @@ def main():
     net = Net()
     trainloader, valloader = None, None  # or real loaders if available
     fl.client.start_client(
-            server_address="34.32.19.37:8080",
+            server_address="something:8080", #but the pub ip server address
         client=FlowerClient(net, trainloader, valloader, local_epochs=1).to_client(),
     )
 if __name__ == "__main__":
