@@ -17,17 +17,38 @@ class FlowerClient(NumPyClient):
         self.valloader = valloader
         self.local_epochs = local_epochs
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-"""
-changes from here
-"""
+        self.last_weights_hash = None
+        self.first_round = True  # Detect reinitialization
 
-        self.last_weights_hash = None  # For comparison
     def _hash_parameters(self, parameters):
         flat_array = np.concatenate([p.flatten() for p in parameters])
         return hashlib.md5(flat_array.tobytes()).hexdigest()
 
+    def _compare_with_previous_model(self, parameters):
+        if not os.path.exists("client_prev_global.pt"):
+            print("[Client] 🟡 No previous saved global model found. Assuming fresh start.")
+            return
+
+        # Load previous weights
+        prev_model = type(self.net)()  # Create a new model instance
+        prev_model.load_state_dict(torch.load("client_prev_global.pt"))
+        prev_weights = get_weights(prev_model)
+
+        # Compare weights
+        same = all(np.allclose(p1, p2) for p1, p2 in zip(parameters, prev_weights))
+
+        if same:
+            print("[Client] ❌ Still using the old global weights (model not updated since last run).")
+        else:
+            print("[Client] ✅ Using new global weights (updated since last run).")
+
     def fit(self, parameters, config):
-        # Log hash of incoming weights
+        # Compare weights to previous session only once at start
+        if self.first_round:
+            self._compare_with_previous_model(parameters)
+            self.first_round = False
+
+        # Log hash of current weights
         current_hash = self._hash_parameters(parameters)
         print(f"[Client] Received model hash: {current_hash}")
 
@@ -35,16 +56,18 @@ changes from here
             if current_hash == self.last_weights_hash:
                 print("[Client] ⚠️ Model weights unchanged since last round.")
             else:
-                print("[Client] ✅ Model weights updated.")
+                print("[Client] ✅ Model weights updated since last round.")
         else:
             print("[Client] First round. No previous weights to compare.")
 
-        # Store current hash for next round comparison
         self.last_weights_hash = current_hash
 
-        # Set weights and train
+        # Set model weights and train
         set_weights(self.net, parameters)
         train_loss = train(self.net, self.trainloader, self.local_epochs, self.device)
+
+        # Save current global model for future comparison
+        torch.save(self.net.state_dict(), "client_prev_global.pt")
 
         return (
             get_weights(self.net),
@@ -52,9 +75,6 @@ changes from here
             {"train_loss": train_loss},
         )
 
-"""
-to here
-"""
     def evaluate(self, parameters, config):
         set_weights(self.net, parameters)
         loss, accuracy = test(self.net, self.valloader, self.device)
