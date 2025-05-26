@@ -8,6 +8,7 @@ from mva.task import Net, get_weights, load_data, set_weights, test, train
 import hashlib
 import numpy as np
 from collections import OrderedDict
+import os
 
 
 class FlowerClient(NumPyClient):
@@ -77,16 +78,7 @@ class FlowerClient(NumPyClient):
 
 
 
-def client_fn(context: Context):
-    # Load model and data
-    net = Net()
-    partition_id = context.node_config["partition-id"]
-    num_partitions = context.node_config["num-partitions"]
-    trainloader, valloader = load_data(partition_id, num_partitions)
-    local_epochs = context.run_config["local-epochs"]
 
-    # Return Client instance
-    return FlowerClient(net, trainloader, valloader, local_epochs).to_client()
 
 
 # Flower ClientApp
@@ -98,7 +90,7 @@ def main():
     net = Net()
     trainloader, valloader = None, None  # or real loaders if available
     fl.client.start_client(
-            server_address="34.32.103.57:8080", #but the pub ip server address
+            server_address="34.32.102.222:8080", #but the pub ip server address
         client=FlowerClient(net, trainloader, valloader, local_epochs=1).to_client(),
     )
 if __name__ == "__main__":
