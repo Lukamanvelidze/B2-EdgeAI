@@ -5,6 +5,8 @@ import flwr as fl
 from flwr.client import ClientApp, NumPyClient
 from flwr.common import Context
 from mva.task import Net, get_weights, load_data, set_weights, test, train
+import hashlib
+import numpy as np
 
 
 # Define Flower Client and client_fn
