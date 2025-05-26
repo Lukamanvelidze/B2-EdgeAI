@@ -15,29 +15,44 @@ class FlowerClient(NumPyClient):
         self.valloader = valloader
         self.local_epochs = local_epochs
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        
+"""
+changes from here
+"""
+
+        self.last_weights_hash = None  # For comparison
+    def _hash_parameters(self, parameters):
+        flat_array = np.concatenate([p.flatten() for p in parameters])
+        return hashlib.md5(flat_array.tobytes()).hexdigest()
 
     def fit(self, parameters, config):
-        print("🚀 Starting fit()")
+        # Log hash of incoming weights
+        current_hash = self._hash_parameters(parameters)
+        print(f"[Client] Received model hash: {current_hash}")
+
+        if self.last_weights_hash is not None:
+            if current_hash == self.last_weights_hash:
+                print("[Client] ⚠️ Model weights unchanged since last round.")
+            else:
+                print("[Client] ✅ Model weights updated.")
+        else:
+            print("[Client] First round. No previous weights to compare.")
+
+        # Store current hash for next round comparison
+        self.last_weights_hash = current_hash
+
+        # Set weights and train
         set_weights(self.net, parameters)
-        print("📦 Weights set, starting training")
+        train_loss = train(self.net, self.trainloader, self.local_epochs, self.device)
 
-        train_loss = train(
-            self.net,
-            self.trainloader,
-            self.local_epochs,
-            self.device,
-        )
-
-        print("✅ Training done, returning updated weights")
         return (
             get_weights(self.net),
             self.net.dataset_size,
             {"train_loss": train_loss},
         )
 
-
-
+"""
+to here
+"""
     def evaluate(self, parameters, config):
         set_weights(self.net, parameters)
         loss, accuracy = test(self.net, self.valloader, self.device)
