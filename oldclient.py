@@ -69,7 +69,17 @@ class FlowerClient(NumPyClient):
         train_loss = train(self.net, self.trainloader, self.local_epochs, self.device)
 
         # Save current global model for future comparison
-        torch.save(self.net.state_dict(), "client_prev_global.pt")
+        # Replace this line:
+# torch.save(self.net.state_dict(), "client_prev_global.pt")
+
+# With this:
+        torch.save(
+            {
+                'model': self.net.state_dict(),
+                'epoch': config.get('epoch', 0),
+            },
+            "client_prev_global.pt"
+        )
 
         return (
             get_weights(self.net),
