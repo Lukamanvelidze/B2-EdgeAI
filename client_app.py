@@ -1,49 +1,82 @@
-"""MVA: A Flower / PyTorch app."""
+﻿"""MVA: A Flower / PyTorch app."""
 
 import torch
 import flwr as fl
 from flwr.client import ClientApp, NumPyClient
 from flwr.common import Context
 from mva.task import Net, get_weights, load_data, set_weights, test, train
+import hashlib
+import numpy as np
+import os 
 
 
 # Define Flower Client and client_fn
 class FlowerClient(NumPyClient):
-    def __init__(self, net, trainloader, valloader, local_epochs, model_path="global_model.pt"):
+    def __init__(self, net, trainloader, valloader, local_epochs):
         self.net = net
         self.trainloader = trainloader
         self.valloader = valloader
         self.local_epochs = local_epochs
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.model_path = model_path
+        self.last_weights_hash = None
+        self.first_round = True  # Detect reinitialization
 
-        # Load model weights from saved file if available
-        try:
-            self.net.load_state_dict(torch.load(self.model_path, map_location=self.device))
-            print(f" Loaded model weights from {self.model_path}")
-        except FileNotFoundError:
-            print(f"  Model file {self.model_path} not found, using random initialization")
+    def _hash_parameters(self, parameters):
+        flat_array = np.concatenate([p.flatten() for p in parameters])
+        return hashlib.md5(flat_array.tobytes()).hexdigest()
+
+    def _compare_with_previous_model(self, parameters):
+        if not os.path.exists("client_prev_global.pt"):
+            print("[Client] 🟡 No previous saved global model found. Assuming fresh start.")
+            return
+
+        # Load previous weights
+        prev_model = type(self.net)()  # Create a new model instance
+	    print("prblem washeere")
+        prev_model.model.model.load_state_dict(torch.load("client_prev_global.pt")
+	    print("prblem ororororwasheere")
+        prev_weights = get_weights(prev_model)
+
+        # Compare weights
+        same = all(np.allclose(p1, p2) for p1, p2 in zip(parameters, prev_weights))
+
+        if same:
+            print("[Client] ❌ Still using the old global weights (model not updated since last run).")
+        else:
+            print("[Client] ✅ Using new global weights (updated since last run).")
 
     def fit(self, parameters, config):
-        print(" Starting fit()")
+        # Compare weights to previous session only once at start
+        if self.first_round:
+            self._compare_with_previous_model(parameters)
+            self.first_round = False
+
+        # Log hash of current weights
+        current_hash = self._hash_parameters(parameters)
+        print(f"[Client] Received model hash: {current_hash}")
+
+        if self.last_weights_hash is not None:
+            if current_hash == self.last_weights_hash:
+                print("[Client] ⚠️ Model weights unchanged since last round.")
+            else:
+                print("[Client] ✅ Model weights updated since last round.")
+        else:
+            print("[Client] First round. No previous weights to compare.")
+
+        self.last_weights_hash = current_hash
+
+        # Set model weights and train
         set_weights(self.net, parameters)
-        print(" Weights set, starting training")
+        train_loss = train(self.net, self.trainloader, self.local_epochs, self.device)
 
-        train_loss = train(
-            self.net,
-            self.trainloader,
-            self.local_epochs,
-            self.device,
-        )
+        # Save current global model for future comparison
+        torch.save(self.net.state_dict(), "client_prev_global.pt")
 
-        print("✅ Training done, returning updated weights")
         return (
             get_weights(self.net),
             self.net.dataset_size,
             {"train_loss": train_loss},
         )
-
-
 
     def evaluate(self, parameters, config):
         set_weights(self.net, parameters)
@@ -73,7 +106,7 @@ def main():
     net = Net()
     trainloader, valloader = None, None  # or real loaders if available
     fl.client.start_client(
-            server_address="34.32.103.57:8080", #but the pub ip server address
+            server_address="34.32.97.252:8080", #but the pub ip server address
         client=FlowerClient(net, trainloader, valloader, local_epochs=1).to_client(),
     )
 if __name__ == "__main__":
