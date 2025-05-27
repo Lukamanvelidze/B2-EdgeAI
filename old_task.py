@@ -11,8 +11,8 @@ class Net:
         self.model = YOLO("yolo11n.yaml")
         
         # Load weights manually from .pt file
-        ckpt = torch.load("yolo11n.pt", map_location="cpu")
-        loaded_state_dict = ckpt["model"].state_dict()
+        ckpt = torch.load("client_prev_global.pt", map_location="cpu")
+        loaded_state_dict = ckpt["model"]
         
         # Filter: Only load weights that match in shape and name
         current_state_dict = self.model.model.state_dict()
@@ -23,7 +23,7 @@ class Net:
         
         # Load only compatible weights
         self.model.model.load_state_dict(compatible_weights, strict=False)
-        print(f"[Init] ✅ Loaded {len(compatible_weights)} compatible layers from yolo11n.pt")
+        #print(f"[Init] ✅ Loaded {len(compatible_weights)} compatible layers from yolo11n.pt")
         
         self.dataset_size = 1
 
@@ -49,9 +49,9 @@ def train(net, trainloader, epochs, device):
         imgsz=416,     # ↓ Reduce image size
         batch=2,       # ↓ Reduce batch size
         workers=0,     # ↓ Avoid parallel data loading
-        save=False,    # ↓ Reduce file I/O
-        plots=False,
-        val=False,
+        save=True,    # ↓ Reduce file I/O
+        plots=True,
+        val=True,
     )
     return 0.0
 
