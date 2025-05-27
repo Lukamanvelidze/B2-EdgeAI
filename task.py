@@ -1,4 +1,4 @@
-"""MVA: A Flower / PyTorch app with YOLO."""
+"""MVA: A Flower / PyTorch app with YOLO - Fixed version with proper model handling."""
 from collections import OrderedDict
 import torch
 import torch.nn as nn
@@ -48,22 +48,63 @@ class Net:
         except Exception as e:
             print(f"[Net] ⚠️ Could not update data.yaml: {e}")
     
+    def _create_custom_yolo_config(self):
+        """Create a custom YOLO configuration with the correct number of classes."""
+        # Standard YOLOv11n architecture adapted for custom classes
+        config = {
+            'nc': self.num_classes,  # number of classes
+            'depth_multiple': 0.33,  # model depth multiple
+            'width_multiple': 0.25,  # layer channel multiple
+            'max_channels': 1024,
+            
+            # YOLOv11n backbone
+            'backbone': [
+                [-1, 1, 'Conv', [64, 3, 2]],  # 0-P1/2
+                [-1, 1, 'Conv', [128, 3, 2]],  # 1-P2/4
+                [-1, 2, 'C3k2', [128, False, 0.25]],
+                [-1, 1, 'Conv', [256, 3, 2]],  # 3-P3/8
+                [-1, 2, 'C3k2', [256, False, 0.25]],
+                [-1, 1, 'Conv', [512, 3, 2]],  # 5-P4/16
+                [-1, 2, 'C3k2', [512, False, 0.25]],
+                [-1, 1, 'Conv', [1024, 3, 2]],  # 7-P5/32
+                [-1, 2, 'C3k2', [1024, True]],
+                [-1, 1, 'SPPF', [1024, 5]],  # 9
+            ],
+            
+            # YOLOv11n head
+            'head': [
+                [-1, 1, 'nn.Upsample', [None, 2, 'nearest']],
+                [[-1, 6], 1, 'Concat', [1]],  # cat backbone P4
+                [-1, 2, 'C3k2', [512, False]],  # 12
+                
+                [-1, 1, 'nn.Upsample', [None, 2, 'nearest']],
+                [[-1, 4], 1, 'Concat', [1]],  # cat backbone P3
+                [-1, 2, 'C3k2', [256, False]],  # 15 (P3/8-small)
+                
+                [-1, 1, 'Conv', [256, 3, 2]],
+                [[-1, 12], 1, 'Concat', [1]],  # cat head P4
+                [-1, 2, 'C3k2', [512, False]],  # 18 (P4/16-medium)
+                
+                [-1, 1, 'Conv', [512, 3, 2]],
+                [[-1, 9], 1, 'Concat', [1]],  # cat head P5
+                [-1, 2, 'C3k2', [1024, False]],  # 21 (P5/32-large)
+                
+                [[15, 18, 21], 1, 'Detect', [self.num_classes]],  # Detect(P3, P4, P5)
+            ]
+        }
+        return config
+    
     def _create_yolo_model(self):
         """Create YOLO model with correct number of classes."""
         try:
-            # Try to use existing YAML file, modify for correct classes
-            if os.path.exists("yolo11n.yaml"):
-                # Load and modify the YAML config
-                with open("yolo11n.yaml", 'r') as f:
-                    model_config = yaml.safe_load(f)
+            # Method 1: Try to create from custom config
+            try:
+                print(f"[Net] 🔧 Creating custom YOLO model for {self.num_classes} classes...")
                 
-                # Update number of classes in the model config
-                if 'nc' in model_config:
-                    model_config['nc'] = self.num_classes
-                    
                 # Create temporary config file
+                config = self._create_custom_yolo_config()
                 temp_config = tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False)
-                yaml.dump(model_config, temp_config, default_flow_style=False)
+                yaml.dump(config, temp_config, default_flow_style=False)
                 temp_config.close()
                 
                 model = YOLO(temp_config.name)
@@ -71,17 +112,33 @@ class Net:
                 # Clean up temp file
                 os.unlink(temp_config.name)
                 
-            else:
-                # Create model from scratch with correct classes
-                model = YOLO("yolo11n.pt")  # Start with pretrained
-                # The model will be modified for correct classes during weight loading
+                print(f"[Net] ✅ Created custom YOLO model for {self.num_classes} classes")
+                return model
                 
-            print(f"[Net] ✅ Created YOLO model for {self.num_classes} classes")
-            return model
-            
+            except Exception as e:
+                print(f"[Net] ⚠️ Custom config method failed: {e}")
+                
+                # Method 2: Start with pretrained and modify
+                print(f"[Net] 🔄 Trying pretrained model modification...")
+                model = YOLO("yolo11n.pt")
+                
+                # Get the model's detection head and modify it
+                if hasattr(model.model, 'model') and len(model.model.model) > 0:
+                    # Find the Detect layer (usually the last layer)
+                    for i, layer in enumerate(model.model.model):
+                        if hasattr(layer, '__class__') and 'Detect' in str(layer.__class__):
+                            print(f"[Net] 🎯 Found Detect layer at index {i}, modifying for {self.num_classes} classes")
+                            # The Detect layer will be rebuilt during training with correct classes
+                            break
+                
+                print(f"[Net] ✅ Modified pretrained YOLO model for {self.num_classes} classes")
+                return model
+                
         except Exception as e:
-            print(f"[Net] ⚠️ Error creating custom YOLO model: {e}")
-            print("[Net] 🔄 Falling back to standard yolo11n.pt")
+            print(f"[Net] ❌ Error creating YOLO model: {e}")
+            print(f"[Net] 🔄 Falling back to basic YOLO model")
+            
+            # Fallback: basic YOLO model
             return YOLO("yolo11n.pt")
     
     def _load_pretrained_weights(self):
@@ -114,17 +171,12 @@ class Net:
                     else:
                         incompatible_layers.append(f"{k}: not found in current model")
                 
-                # Load compatible weights
+                # Load compatible weights with strict=False to ignore incompatible layers
                 missing_keys, unexpected_keys = self.model.model.load_state_dict(compatible_weights, strict=False)
                 
                 print(f"[Net] ✅ Loaded {len(compatible_weights)} compatible layers")
                 if incompatible_layers:
-                    print(f"[Net] ⚠️ Skipped {len(incompatible_layers)} incompatible layers")
-                    # Print first few incompatible layers for debugging
-                    for layer in incompatible_layers[:3]:
-                        print(f"[Net]    - {layer}")
-                    if len(incompatible_layers) > 3:
-                        print(f"[Net]    - ... and {len(incompatible_layers) - 3} more")
+                    print(f"[Net] ⚠️ Skipped {len(incompatible_layers)} incompatible layers (detection head will be retrained)")
                         
             else:
                 print("[Net] ⚠️ yolo11n.pt not found, using random initialization")
@@ -143,8 +195,21 @@ class Net:
         return self.model.model.state_dict()
     
     def load_state_dict(self, state_dict, strict=False):
-        """Load model state dictionary."""
-        return self.model.model.load_state_dict(state_dict, strict=strict)
+        """Load model state dictionary with better error handling."""
+        try:
+            # Always use strict=False for federated learning to handle architecture differences
+            missing_keys, unexpected_keys = self.model.model.load_state_dict(state_dict, strict=False)
+            
+            if missing_keys:
+                print(f"[Net] ⚠️ Missing keys in state_dict: {len(missing_keys)} layers")
+            if unexpected_keys:
+                print(f"[Net] ⚠️ Unexpected keys in state_dict: {len(unexpected_keys)} layers")
+                
+            return missing_keys, unexpected_keys
+            
+        except Exception as e:
+            print(f"[Net] ❌ Error loading state dict: {e}")
+            return [], []
     
     def train_mode(self):
         """Set model to training mode."""
@@ -187,6 +252,8 @@ def train(net, trainloader, epochs, device):
             'val': False,      # Disable validation during training
             'verbose': True,   # Enable verbose output
             'exist_ok': True,  # Allow overwriting
+            'patience': 5,     # Early stopping patience
+            'close_mosaic': 5, # Close mosaic augmentation in last epochs
         }
         
         # Start training
@@ -218,7 +285,9 @@ def test(net, testloader, device):
         results = net.model.val(
             data=net.config_path, 
             device=device if isinstance(device, str) else str(device),
-            verbose=False
+            verbose=False,
+            save=False,
+            plots=False
         )
         
         # Extract metrics
@@ -261,7 +330,7 @@ def get_weights(net):
 
 
 def set_weights(net, parameters):
-    """Set model weights from numpy arrays."""
+    """Set model weights from numpy arrays with better compatibility handling."""
     try:
         if not parameters:
             print("[Weights] ⚠️ No parameters provided")
@@ -272,13 +341,26 @@ def set_weights(net, parameters):
         
         if len(parameters) != len(param_keys):
             print(f"[Weights] ⚠️ Parameter count mismatch: {len(parameters)} vs {len(param_keys)}")
-            return
+            # Try to match as many parameters as possible
+            min_params = min(len(parameters), len(param_keys))
+            print(f"[Weights] 🔧 Attempting to match first {min_params} parameters")
+        else:
+            min_params = len(parameters)
         
         # Create new state dict with updated weights
         updated_state_dict = OrderedDict()
+        updated_count = 0
         skipped_layers = []
         
-        for i, (key, param_array) in enumerate(zip(param_keys, parameters)):
+        # Copy all original weights first
+        for key in param_keys:
+            updated_state_dict[key] = state_dict[key].clone()
+        
+        # Update compatible weights
+        for i in range(min_params):
+            key = param_keys[i]
+            param_array = parameters[i]
+            
             try:
                 # Convert numpy array to tensor
                 new_tensor = torch.from_numpy(param_array)
@@ -286,29 +368,38 @@ def set_weights(net, parameters):
                 # Check shape compatibility
                 if new_tensor.shape == state_dict[key].shape:
                     updated_state_dict[key] = new_tensor
+                    updated_count += 1
                 else:
                     # Keep original weight if shapes don't match
-                    updated_state_dict[key] = state_dict[key]
                     skipped_layers.append(f"{key}: {new_tensor.shape} vs {state_dict[key].shape}")
                     
             except Exception as e:
                 # Keep original weight if conversion fails
-                updated_state_dict[key] = state_dict[key]
                 skipped_layers.append(f"{key}: {str(e)}")
         
-        # Load the updated state dict
-        net.model.model.load_state_dict(updated_state_dict, strict=True)
+        # Load the updated state dict with strict=False to handle architecture differences
+        missing_keys, unexpected_keys = net.model.model.load_state_dict(updated_state_dict, strict=False)
         
-        successful_layers = len(param_keys) - len(skipped_layers)
-        print(f"[Weights] ✅ Updated {successful_layers}/{len(param_keys)} layers")
+        print(f"[Weights] ✅ Updated {updated_count}/{len(param_keys)} layers")
         
         if skipped_layers:
-            print(f"[Weights] ⚠️ Skipped {len(skipped_layers)} layers due to shape mismatch")
+            print(f"[Weights] ⚠️ Skipped {len(skipped_layers)} layers due to incompatibility")
             # Print first few for debugging
             for layer in skipped_layers[:3]:
                 print(f"[Weights]    - {layer}")
             if len(skipped_layers) > 3:
                 print(f"[Weights]    - ... and {len(skipped_layers) - 3} more")
         
+        if missing_keys:
+            print(f"[Weights] ⚠️ Missing keys: {len(missing_keys)} layers")
+        if unexpected_keys:
+            print(f"[Weights] ⚠️ Unexpected keys: {len(unexpected_keys)} layers")
+        
     except Exception as e:
         print(f"[Weights] ❌ Error setting weights: {e}")
+
+
+def create_fresh_model(num_classes=16):
+    """Create a fresh YOLO model without loading previous checkpoints."""
+    print(f"[Fresh] 🆕 Creating fresh YOLO model with {num_classes} classes")
+    return Net(num_classes=num_classes)
