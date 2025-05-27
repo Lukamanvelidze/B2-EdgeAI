@@ -15,15 +15,22 @@ import os
 class Net:
     def __init__(self):
         self.config_path = "./data/mvadata/data.yaml"
-
-        # Load model architecture from YAML (custom with nc=16)
         self.model = YOLO("yolo11n.yaml")
 
-        # Load weights manually from .pt file
+        # Load weights from .pt file safely
         ckpt = torch.load("yolo11n.pt", map_location="cpu")
-        self.model.model.load_state_dict(ckpt["model"].state_dict(), strict=False)
+        loaded_state_dict = ckpt["model"].state_dict()
 
-        self.dataset_size = 100
+        current_state_dict = self.model.model.state_dict()
+        compatible_weights = {
+            k: v for k, v in loaded_state_dict.items()
+            if k in current_state_dict and v.shape == current_state_dict[k].shape
+        }
+
+        self.model.model.load_state_dict(compatible_weights, strict=False)
+        print(f"[Init] ✅ Loaded {len(compatible_weights)} compatible layers from yolo11n.pt")
+
+        self.dataset_size = 1
 
 
     def to(self, device):
@@ -68,17 +75,15 @@ def test(net, testloader, device):
 def get_weights(net):
     return [val.cpu().numpy() for _, val in net.model.model.state_dict().items()]
 
+
 def set_weights(net, parameters):
     model_state = net.model.model.state_dict()
     model_keys = list(model_state.keys())
     params_dict = dict(zip(model_keys, parameters))
-
-    with torch.no_grad():  # Ensure we're not in inference mode
+    with torch.no_grad():
         for k, v in params_dict.items():
-            try:
-                if k in model_state and model_state[k].shape == torch.tensor(v).shape:
-                    model_state[k].copy_(torch.tensor(v))
-                else:
-                    print(f"⚠️ Skipping {k}: shape mismatch or missing")
-            except Exception as e:
-                print(f"⚠️ Skipping {k}: {e}")
+            if k in model_state and model_state[k].shape == torch.tensor(v).shape:
+                model_state[k].copy_(torch.tensor(v))
+            else:
+                print(f"⚠️ Skipping {k}: shape mismatch or missing")
+
