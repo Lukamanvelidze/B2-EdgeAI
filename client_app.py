@@ -32,9 +32,9 @@ class FlowerClient(NumPyClient):
 
         # Load previous weights
         prev_model = type(self.net)()  # Create a new model instance
-	    print("prblem washeere")
+	print("prblem washeere")
         prev_model.model.model.load_state_dict(torch.load("client_prev_global.pt")
-	    print("prblem ororororwasheere")
+	print("prblem ororororwasheere")
         prev_weights = get_weights(prev_model)
 
         # Compare weights
