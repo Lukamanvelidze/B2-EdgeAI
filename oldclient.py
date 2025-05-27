@@ -31,19 +31,9 @@ class FlowerClient(NumPyClient):
             return
 
         # Load previous weights
-        prev_model = type(self.net)  # Ensure model is built correctly
-        try:
-            state_dict = torch.load("client_prev_global.pt", map_location="cpu")
-            if isinstance(state_dict, dict):
-                result = prev_model.load_state_dict(state_dict, strict=False)
-            else:
-                result = prev_model.load_state_dict(state_dict.state_dict(), strict=False)
-            print("[Client] ✅ Partial model loaded. Skipped incompatible layers.")
-            print(f"[Client] 🔍 Missing keys: {result.missing_keys}")
-            print(f"[Client] 🔍 Unexpected keys: {result.unexpected_keys}")
-        except Exception as e:
-            print(f"[Client] ❌ Error loading previous model weights: {e}")
-            return
+        prev_model = self.net
+        print(prev_model)  # Ensure model is built correctly
+        state_dict = torch.load("client_prev_global.pt", map_location="cpu")
         prev_weights = get_weights(prev_model)
 
         # Compare weights
