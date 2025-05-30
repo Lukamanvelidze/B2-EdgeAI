@@ -1,14 +1,12 @@
-"""MVA: A Flower / PyTorch app."""
-
-import torch
-import flwr as fl
-from flwr.client import ClientApp, NumPyClient
-from flwr.common import Context
-from mva.task import Net, get_weights, load_data, set_weights, test, train
+import os
 import hashlib
 import numpy as np
-from collections import OrderedDict
-import os
+import torch
+import flwr as fl
+from flwr.client import NumPyClient
+from flwr.common import Context
+
+from mva.task import Net, get_weights, load_data, set_weights, test, train
 
 
 class FlowerClient(NumPyClient):
@@ -18,66 +16,73 @@ class FlowerClient(NumPyClient):
         self.valloader = valloader
         self.local_epochs = local_epochs
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.last_weights_hash = None
+        self.first_round = True
 
-    def _save_current_weights(self, path="client_prev_global.pt"):
-        torch.save(self.net.model.model.state_dict(), path)
-        print(f"[Client] ✅ Saved current global model to {path}")
+    def _hash_parameters(self, parameters):
+        flat_array = np.concatenate([p.flatten() for p in parameters])
+        return hashlib.md5(flat_array.tobytes()).hexdigest()
 
-    def _load_previous_weights(self, path="client_prev_global.pt"):
-        if not os.path.exists(path):
-            print("[Client] ❌ No previous global model found. Skipping comparison.")
-            return None
-
-        prev_model = self.net.__class__()  # reinstantiate the Net class
-        prev_model = prev_model.model.model  # extract nn.Module
-        prev_state = torch.load(path, map_location="cpu")
-
-        # Filter: Load only matching keys and shapes
-        compatible_weights = {
-            k: v for k, v in prev_state.items()
-            if k in prev_model.state_dict() and v.shape == prev_model.state_dict()[k].shape
-        }
-
-        prev_model.load_state_dict(compatible_weights, strict=False)
-        print(f"[Client] 🔁 Loaded {len(compatible_weights)} layers for comparison")
-        return prev_model
-
-    def _compare_with_previous_model(self, new_params):
-        prev_model = self._load_previous_weights()
-        if prev_model is None:
-            print("[Client] 🆕 First round or missing model — assuming this is a new global model.")
+    def _compare_with_previous_model(self, parameters):
+        """Compare incoming model weights with previously saved model."""
+        if not os.path.exists("client_prev_global.pt"):
+            print("[Client] 🟡 No previous saved global model found. Assuming fresh start.")
             return
 
-        # Convert new global model to tensor state_dict
-        keys = self.net.model.model.state_dict().keys()
-        new_state = dict(zip(keys, [torch.tensor(p) for p in new_params]))
+        print("[Client] 📥 Loading weights for comparison...")
+        ckpt = torch.load("client_prev_global.pt", map_location="cpu")
+        state_dict = ckpt["model"]
 
-        # Compare
-        diff_sum = 0.0
-        for k in new_state:
-            if k in prev_model.state_dict():
-                prev_tensor = prev_model.state_dict()[k]
-                new_tensor = new_state[k]
-                if prev_tensor.shape == new_tensor.shape:
-                    diff_sum += torch.norm(prev_tensor - new_tensor).item()
+        prev_model = Net()
+        prev_weights_np = [val.cpu().numpy() for val in state_dict.values()]
+        set_weights(prev_model, prev_weights_np)
 
-        print(f"[Client] 🔍 Total weight difference from last round: {diff_sum:.4f}")
+        prev_weights = get_weights(prev_model)
+        current_weights = [p for p in parameters]  # from server
+
+        try:
+            same = all(np.allclose(p1, p2) for p1, p2 in zip(current_weights, prev_weights))
+            if same:
+                print("[Client] ❌ Still using the old global weights (model not updated since last run).")
+            else:
+                print("[Client] ✅ Using new global weights (updated since last run).")
+        except ValueError as e:
+            print(f"[Client] 🚨 Shape mismatch during comparison: {e}")
 
     def fit(self, parameters, config):
-        print("\n[Client] 🚀 Starting local training")
-        self._compare_with_previous_model(parameters)
+        if self.first_round:
+            self._compare_with_previous_model(parameters)
+            self.first_round = False
 
-        # Load the new global model
+        current_hash = self._hash_parameters(parameters)
+        print(f"[Client] 🔍 Received model hash: {current_hash}")
+
+        if self.last_weights_hash:
+            if current_hash == self.last_weights_hash:
+                print("[Client] ⚠️ Model weights unchanged since last round.")
+            else:
+                print("[Client] ✅ Model weights changed from last round.")
+        else:
+            print("[Client] ℹ️ First round — no previous hash to compare.")
+
+        self.last_weights_hash = current_hash
+
         set_weights(self.net, parameters)
-
-        # Train locally
         train_loss = train(self.net, self.trainloader, self.local_epochs, self.device)
 
-        # Save current model for next round diff
-        self._save_current_weights()
+        # Save weights in deterministic order
+        state_dict = self.net.state_dict()
+        ordered_keys = sorted(state_dict.keys())
+        ordered_weights = {k: state_dict[k] for k in ordered_keys}
+        torch.save({"model": ordered_weights}, "client_prev_global.pt")
 
-        print("[Client] ✅ Finished local training\n")
-        return get_weights(self.net), self.net.dataset_size, {"train_loss": train_loss}
+        print("[Client] 💾 Saved updated model to client_prev_global.pt")
+
+        return (
+            get_weights(self.net),
+            self.net.dataset_size,
+            {"train_loss": train_loss},
+        )
 
     def evaluate(self, parameters, config):
         set_weights(self.net, parameters)
@@ -85,19 +90,27 @@ class FlowerClient(NumPyClient):
         return loss, self.net.dataset_size, {"accuracy": accuracy}
 
 
+def client_fn(context: Context):
+    net = Net()
+    partition_id = context.node_config["partition-id"]
+    num_partitions = context.node_config["num-partitions"]
+    trainloader, valloader = load_data(partition_id, num_partitions)
+    local_epochs = context.run_config["local-epochs"]
 
-# Flower ClientApp
-#app = ClientApp(
-#    client_fn,
-#)
+    return FlowerClient(net, trainloader, valloader, local_epochs).to_client()
+
 
 def main():
     net = Net()
-    trainloader, valloader = None, None  # or real loaders if available
+    trainloader, valloader = None, None  # Replace with actual loaders if needed
     fl.client.start_client(
-            server_address="34.32.102.222:8080", #but the pub ip server address
+        server_address="34.32.80.181:8080",
         client=FlowerClient(net, trainloader, valloader, local_epochs=1).to_client(),
     )
+
+
+if __name__ == "__main__":
+    main()
 if __name__ == "__main__":
     main()
 
