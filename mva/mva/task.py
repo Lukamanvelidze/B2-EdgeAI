@@ -32,8 +32,7 @@ class Net:
             print("[Net] 🟡 No client_prev_global.pt found. Starting with fresh model.")
             if os.path.exists("yolo11n.pt"):
                 print("[Net] 🔄 Loading base weights from yolo11n.pt...")
-                weights = torch.load("yolo11n.pt", map_location="cpu")
-                self.model.model.load_state_dict(weights["model"], strict=False)
+                self.model = YOLO("yolo11n.pt")
 
         self.dataset_size = 1
 
