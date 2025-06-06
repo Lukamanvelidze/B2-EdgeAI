@@ -21,7 +21,8 @@ class FedAvgWithSave(FedAvg):
             # Set the weights to the model
             set_weights(self.net, weights)
             # Save the PyTorch model
-            torch.save(self.net.state_dict(), self.model_save_path)
+            #torch.save(self.net.state_dict(), self.model_save_path)
+            self.net.save(self.model_save_path)
             print(f" Saved aggregated model to {self.model_save_path} after round {rnd}")
 
         return aggregated_parameters, agg_metrics
@@ -31,7 +32,7 @@ def main():
     model = Net()
     if os.path.exists("global_model.pt"):
         print("📥 Loading existing global_model.pt for initialization")
-        model.load_state_dict(torch.load("global_model.pt", map_location="cpu"))
+        model.YOLO("global_model.pt")
     else:
         print("📦 No global_model.pt found, using base model")
     
@@ -40,7 +41,7 @@ def main():
         min_fit_clients=1,
         min_evaluate_clients=1,
         min_available_clients=1,
-        initial_parameters=ndarrays_to_parameters(get_weights(Net())),
+        initial_parameters=ndarrays_to_parameters(get_weights(model)),
         model_save_path="global_model.pt",  # your desired path
     )
 
