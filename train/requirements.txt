@@ -1,0 +1,5 @@
+torchvision==0.19.1
+torch==2.4.1
+flwr==1.11.1
+ultralytics
+numpy
