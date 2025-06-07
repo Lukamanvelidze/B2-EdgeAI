@@ -1,0 +1,26 @@
+
+# path to the images folder that is used for training
+#train:              
+# path to the images folder that is used for val
+#val: 
+
+# with the current partitioned data part1, 2, 3... and its folder structure
+# it is expected that 
+
+# train: path/to/partitioned/data/folder/train/img
+# val: path/to/partitioned/data/folder/val/img
+
+# I believe that its best to put the partitioned data folder in the same folder as this file 
+# then the path will simply be:
+
+#------------------------------------  uncomment the bellow and append the correct path
+#train: ./"name of the partition folder"/train/img
+
+#val: ./"name of the partition folder"/val/img
+
+
+nc: 16
+names: [
+  "bike", "bus", "caravan", "coupe", "crossover", "hatchback", "jeep", "mpv",
+  "pickup-truck", "sedan", "suv", "taxi", "truck", "van", "vehicle", "wagon"
+]

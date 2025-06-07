@@ -67,7 +67,7 @@ class FlowerClient(NumPyClient):
 def main():
 
     # default server address
-    d_server_address = 0.0.0.0:8080
+    d_server_address = "0.0.0.0:8080"
 
     parser = argparse.ArgumentParser(description="Federated Learning Client")
 

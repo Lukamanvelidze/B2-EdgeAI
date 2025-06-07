@@ -48,6 +48,7 @@ def main():
     # change the default here:
     d_port = 8080
     d_save_path = "global_model.pt"
+    
     d_frac_fit = 1.0
     d_min_fit_client = 1
     d_min_eval_client = 1
