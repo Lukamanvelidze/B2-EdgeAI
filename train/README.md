@@ -48,7 +48,7 @@ python3 server/server.py
 ## 3. Usage
 
 Before starting the training run, one must obviously first have the dataset (in yolo structure and format) that is used to train. It is recommended to put it in the data folder, same path with the data.yaml file for ease of use. 
-Please read the data.ymal file for instruction on how to put the correct path.
+Please read the data.yaml file for instruction on how to put the correct path.
 
 Furthermore, within the task.py of both client and server folder, there are hyperparameters that one can change for an optimal training run (inside the def train() function)
 
