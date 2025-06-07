@@ -57,7 +57,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="Federated Learning Server")
 
-    parser.add_argument("--port", type=str, default=d_port, help="Port number (str, default: " + str(d_port) + ")" )
+    parser.add_argument("--port", type=int, default=d_port, help="Port number (int, default: " + str(d_port) + ")" )
 
     parser.add_argument("--model_save_path", type=str, default=d_save_path, help="Where to save the trained model (str, default: " + str(d_save_path) + ")")
 

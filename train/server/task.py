@@ -6,7 +6,7 @@ import os
 class Net:
     def __init__(self):
         self.config_path = "./data/data.yaml"
-        self.model = YOLO("yolo11n.yaml")  # Should define nc: 16
+        self.model = YOLO("yolo11.yaml")  # Should define nc: 16
         self.dataset_size = 1
 
     def to(self, device):
@@ -22,11 +22,8 @@ class Net:
     def save(self, path):
         self.model.save(path)
 
-def load_data(partition_id: int, num_partitions: int):
-    return None, None  # handled by YOLO internally
 
-
-def train(net, trainloader, epochs, device): #contains hyperparameters that needs to be adjust
+def train(net, epochs, device): #contains hyperparameters that needs to be adjust
     net.model.train(
         data=net.config_path,
         epochs=epochs,
@@ -41,7 +38,7 @@ def train(net, trainloader, epochs, device): #contains hyperparameters that need
     return 0.0
 
 
-def test(net, testloader, device):
+def test(net, device):
     results = net.model.val(data=net.config_path, device=device)
     accuracy = results.box.map50
     return 0.0, accuracy
