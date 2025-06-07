@@ -48,7 +48,7 @@ def main():
     # change the default here:
     d_port = 8080
     d_save_path = "global_model.pt"
-    
+
     d_frac_fit = 1.0
     d_min_fit_client = 1
     d_min_eval_client = 1
@@ -60,7 +60,7 @@ def main():
 
     parser.add_argument("--port", type=int, default=d_port, help="Port number (int, default: " + str(d_port) + ")" )
 
-    parser.add_argument("--model_save_path", type=str, default=d_save_path, help="Where to save the trained model (str, default: " + str(d_save_path) + ")")
+    parser.add_argument("--model_save_path", type=str, default=d_save_path, help="Where to save the trained model (str, format: something.pt, default: " + str(d_save_path) + ")")
 
     parser.add_argument("--fraction_fit", type=float, default=d_frac_fit, help="The fraction of the total client that is taken for fitting (float, default: " + str(d_frac_fit) + ")")
     parser.add_argument("--min-fit-clients", type=int, default=d_min_fit_client, help="Minimum number of clients to use for training (int, default: " + str(d_min_fit_client) + ")")
