@@ -32,6 +32,11 @@ Activate
 source /path/to/new/virtual/environment/bin/activate
 ```
 
+After activating the virtual environment, upgrade pip (at least for Jetson Nano)
+```bash
+pip install --upgrade pip
+```
+
 ## 2. Installation
 Stay in train/ folder and run the following command
 
