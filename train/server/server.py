@@ -84,10 +84,10 @@ def main():
 
     model = Net()
     if os.path.exists(model_save_path):
-        print("📥 Loading existing global_model.pt for initialization")
+        print("Loading existing global_model.pt for initialization")
         model.YOLO(model_save_path)
     else:
-        print("📦 No global_model.pt found, using base model")
+        print("No global_model.pt found, using base model")
     
     strategy = FedAvgWithSave(
         fraction_fit= fraction_fit,
