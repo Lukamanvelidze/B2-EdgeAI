@@ -80,7 +80,7 @@ def main():
     net = Net()
     fl.client.start_client(
         server_address=server_address,
-        client=FlowerClient(net, local_epochs=1).to_client(),
+        client=FlowerClient(net, local_epochs=5).to_client(),
     )
 
 
