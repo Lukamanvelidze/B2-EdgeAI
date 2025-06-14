@@ -52,14 +52,14 @@ def set_weights(net, parameters):
     model_keys = list(model_state.keys())
     params_dict = dict(zip(model_keys, parameters))
 
-""" prevent hard crash if there is any layer mismatch 
+ prevent hard crash if there is any layer mismatch 
     with torch.no_grad():  # Ensure we're not in inference mode
         for k, v in params_dict.items():
             try:
                 if k in model_state and model_state[k].shape == torch.tensor(v).shape:
                     model_state[k].copy_(torch.tensor(v))
                 else:
-                    print(f"⚠️ Skipping {k}: shape mismatch or missing")
+                    print(f"Skipping {k}: shape mismatch or missing")
             except Exception as e:
-                print(f"⚠️ Skipping {k}: {e}")
-"""  
+                print(f" Skipping {k}: {e}")
+ 
