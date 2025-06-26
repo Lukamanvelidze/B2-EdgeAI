@@ -41,6 +41,7 @@ for uuid, entry in data.items():
     boxes = entry["boxes"]
     nl_descriptions = entry["nl"]
 
+    # Majority vote for class ID
     class_candidates = [extract_class(desc, vehicle_map) for desc in nl_descriptions]
     class_counter = Counter(class_candidates)
     most_common_class = class_counter.most_common(1)[0][0]
@@ -58,7 +59,7 @@ for uuid, entry in data.items():
 
         height, width, _ = img.shape
 
-        # Crop bounding box coordinates (for cropping only)
+        # Crop image using original bbox
         x, y, w, h = box
         crop_x1 = max(0, int(x))
         crop_y1 = max(0, int(y))
@@ -70,34 +71,26 @@ for uuid, entry in data.items():
             print(f"[WARNING] Empty crop in {frame_path}, skipping.")
             continue
 
-        frame_dir = os.path.dirname(frame_path)
-        parent_dir = os.path.dirname(frame_dir)
-
-        # Write YOLO label for full image with fixed coordinates
-        labels_dir = os.path.join(parent_dir, "labels")
-        os.makedirs(labels_dir, exist_ok=True)
-        frame_name = os.path.basename(frame_path)
-        label_name = frame_name.replace(".jpg", ".txt")
-        label_path = os.path.join(labels_dir, label_name)
-        with open(label_path, "w") as f:
-            # fixed box: center 0.5 0.5, width=1, height=1
-            f.write(f"{class_id} 0.5 0.5 1.0 1.0\n")
-
         # Save cropped image
+        parent_dir = os.path.dirname(os.path.dirname(frame_path))
         cropped_dir = os.path.join(parent_dir, "cropped")
         os.makedirs(cropped_dir, exist_ok=True)
         cropped_filename = f"{uuid}_{i}.jpg"
         cropped_path = os.path.join(cropped_dir, cropped_filename)
         cv2.imwrite(cropped_path, cropped_img)
 
-        # Write label for cropped image with fixed coordinates
-        cropped_labels_dir = os.path.join(parent_dir, "cropped_labels")
-        os.makedirs(cropped_labels_dir, exist_ok=True)
-        cropped_label_name = cropped_filename.replace(".jpg", ".txt")
-        cropped_label_path = os.path.join(cropped_labels_dir, cropped_label_name)
-        with open(cropped_label_path, "w") as f:
-            f.write(f"{class_id} 0.5 0.5 1.0 1.0\n")
+        # Save label for the cropped image with fixed bbox
+        labels_dir = os.path.join(parent_dir, "labels")
+        os.makedirs(labels_dir, exist_ok=True)
+        label_name = f"{uuid}_{i}.txt"
+        label_path = os.path.join(labels_dir, label_name)
 
-        print(f"[INFO] Saved cropped image and label: {cropped_path}, {cropped_label_path}")
+        # Fixed bbox: center_x=0.5, center_y=0.5, width=1.0, height=1.0 (relative to cropped image)
+        yolo_line = f"{class_id} 0.5 0.5 1.0 1.0"
 
-print("Cropping and label generation complete.")
+        with open(label_path, "w") as f:
+            f.write(yolo_line + "\n")
+
+        print(f"[INFO] Saved cropped image and label: {cropped_path}, {label_path}")
+
+print("Cropping and fixed-label generation complete.")
