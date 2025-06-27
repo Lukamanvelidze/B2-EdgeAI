@@ -6,6 +6,7 @@ from flwr.common import ndarrays_to_parameters, parameters_to_ndarrays
 import torch 
 import os
 import argparse
+from Ultralytics import Yolo
 
 class FedAvgWithSave(FedAvg):
     def __init__(self, *args, model_save_path="global_model.pt", **kwargs):
