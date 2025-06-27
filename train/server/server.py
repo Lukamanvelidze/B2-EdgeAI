@@ -51,9 +51,9 @@ def main():
     d_save_path = "global_model.pt"
     
     d_frac_fit = 1.0
-    d_min_fit_client = 2
-    d_min_eval_client = 2
-    d_min_available_client = 2
+    d_min_fit_client = 3
+    d_min_eval_client = 3
+    d_min_available_client = 3
     d_rounds = 20
     #--------------------------------
 
