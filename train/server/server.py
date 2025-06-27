@@ -53,7 +53,7 @@ def main():
     d_min_fit_client = 3
     d_min_eval_client = 3
     d_min_available_client = 3
-    d_rounds = 100
+    d_rounds = 20
     #--------------------------------
 
     parser = argparse.ArgumentParser(description="Federated Learning Server")
