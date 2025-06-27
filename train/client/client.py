@@ -13,7 +13,17 @@ class FlowerClient(NumPyClient):
     def __init__(self, net, local_epochs):
         self.net = net
         self.local_epochs = local_epochs
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        #self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        if torch.backends.mps.is_available() and torch.backends.mps.is_built():
+            self.device = torch.device("mps")
+            print("[Client] Using Apple MPS backend for GPU acceleration.")
+        elif torch.cuda.is_available():
+            self.device = torch.device("cuda:0")
+            print("[Client] Using NVIDIA CUDA GPU.")
+        else:
+            self.device = torch.device("cpu")
+            print("[Client] Using CPU.")
+
         
         self.last_weights_hash = None
         self.first_round = True
