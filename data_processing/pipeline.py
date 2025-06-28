@@ -14,7 +14,7 @@ os.makedirs(OUTPUT_LABEL_DIR, exist_ok=True)
 base_model = YOLO("yolov11n.pt")           # base model to detect bounding boxes
 fine_model = YOLO("global_model.pt")      # fine-grained classifier (your model)
 
-# Define your fine class names (same as what you used during fine-tuning)
+# Define  fine class names (same as what you used during fine-tuning)
 fine_model.model.names = {
     0: "bike",
     1: "bus",
