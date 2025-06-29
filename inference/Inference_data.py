@@ -17,11 +17,11 @@ video_path = '/home/luka/Desktop/AIC_2023_Track2/AIC23_Track2_NL_Retrieval/data/
 delay = 1  # ms between frames
 log = []
 
-# For FPS tracking
 frame_count = 0
 start_time = time.time()
 
 try:
+    # Start streaming inference generator
     results = model.predict(
         source=video_path,
         show=True,
@@ -30,12 +30,18 @@ try:
         stream=True,
         verbose=False
     )
+    
+    # Initialize previous time before first result for inference timing
+    prev_time = time.perf_counter()
 
     for i, result in enumerate(results):
+        curr_time = time.perf_counter()
+        inference_time = curr_time - prev_time
+        prev_time = curr_time
+        
         frame_data = {}
         frame_data["frame_id"] = i
-        frame_start = time.perf_counter()
-
+        
         # Collect predictions
         predictions = []
         boxes = result.boxes
@@ -44,47 +50,44 @@ try:
                 cls_id = int(boxes.cls[j].item())
                 conf = float(boxes.conf[j].item())
                 xyxy = [float(x.item()) for x in boxes.xyxy[j]]
-
+                
                 predictions.append({
                     "class_id": cls_id,
                     "label": label_map[cls_id],
                     "confidence": round(conf, 4),
                     "bbox": xyxy  # [x1, y1, x2, y2]
                 })
-
+        
         frame_data["predictions"] = predictions
-
-        # Inference time
-        frame_end = time.perf_counter()
-        frame_data["inference_time_ms"] = round((frame_end - frame_start) * 1000, 2)
-
+        
+        # Corrected inference time measurement
+        frame_data["inference_time_ms"] = round(inference_time * 1000, 2)
+        
         # System usage
         frame_data["cpu_percent"] = psutil.cpu_percent()
         frame_data["ram_usage_mb"] = round(psutil.virtual_memory().used / (1024 * 1024), 2)
-
-        # Append to log
+        
         log.append(frame_data)
-
+        
         frame_count += 1
+        
         if cv2.waitKey(delay) & 0xFF == ord('q'):
             print("Quitting...")
             break
-
-    # After inference: save total FPS
+    
     total_time = time.time() - start_time
     fps = round(frame_count / total_time, 2)
-
-    # Save to JSON
+    
     output = {
         "video_path": video_path,
         "total_frames": frame_count,
         "average_fps": fps,
         "frames": log
     }
-
+    
     with open("inference_metrics.json", "w") as f:
         json.dump(output, f, indent=2)
-
+    
     print(f"[✔] Saved metrics to inference_metrics.json")
 
 except Exception as e:
