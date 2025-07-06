@@ -14,13 +14,13 @@
 # then the path will simply be:
 
 #------------------------------------  uncomment the bellow and append the correct path
-#train: ./"name of the partition folder"/train
+train: ./part1/train
 
-#val: ./"name of the partition folder"/val
+val: ./part1/val
 
 
-nc: 16
+nc: 14
 names: [
-  "bike", "bus", "caravan", "coupe", "crossover", "hatchback", "jeep", "mpv",
+  "bus", "coupe", "crossover", "hatchback", "jeep", "mpv",
   "pickup-truck", "sedan", "suv", "taxi", "truck", "van", "vehicle", "wagon"
 ]
