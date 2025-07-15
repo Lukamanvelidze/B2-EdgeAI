@@ -56,13 +56,12 @@ python3 Inference_data.py
 ###  Output
 
 - Inference videos with bounding boxes and class labels are saved to the output directory (defined in each script).
-- Logs containing FPS, CPU/GPU usage, and inference timing are saved as `.json` or `.txt` files.
+- Logs containing FPS, CPU/GPU usage, and inference timing are saved as `.json` file.
 - Example:
   ```
   output/
   ├── annotated_video.mp4
   ├── metrics_log.json
-  └── classifier_stats.txt
   ```
 
 ---
