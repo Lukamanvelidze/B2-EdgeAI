@@ -2,7 +2,7 @@
 
 This project supports both **one-stage** (YOLO-only) and **two-stage** (YOLO + classifier) inference pipelines for vehicle detection and classification. Several scripts were developed to perform live inference, benchmark model performance, and visualize results.
 
-### 🔧 Inference Scripts Overview
+###  Inference Scripts Overview
 
 | Script                          | Description |
 |---------------------------------|-------------|
