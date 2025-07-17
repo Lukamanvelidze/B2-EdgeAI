@@ -15,7 +15,7 @@ We also fine tuned a pretrained Yolo11n model, to recognise following classes mo
 | PyTorch             | NVIDIA GeForce RTX 3060 Ti         | 12.13                 |
 | PyTorch             | NVIDIA 940MX                       | 225.6                 |
 | ONNX                | (CPU) Intel i5-7200U               | 35.08                 |
-| TensorRT `.engine` (FP32) | Jetson Nano (JetPack 4)        | 26.3                  |
+| TensorRT `.engine` (FP32) | Jetson Nano (JetPack 4)        | 352.3                  |
 
 ---
 
