@@ -10,7 +10,7 @@
 ## 1. Workplace
 
 Firstly ensure that python and pip has been installed. 
-Ideally set up a virtual environment (conda or pyenv or personal choice)
+Ideally set up a virtual environment (conda or pyenv or docker or personal choice)
 
 (For the project that the owner is doing, python=3.8 on Jerson Nano)
 
@@ -32,7 +32,28 @@ Activate
 source /path/to/new/virtual/environment/bin/activate
 ```
 
-After activating the virtual environment, upgrade pip (at least for Jetson Nano)
+Jetpack 4 Ultralytics docker:
+```bash
+docker pull ultralytics/ultralytics:latest-jetson-jetpack4
+```
+Then initialize the docker by go to the project foler and run the following command:
+```bash
+sudo docker run -it \
+  --runtime=nvidia \
+  --ipc=host \
+  --name training\
+  -v $(pwd):/workspace \
+  ultralytics/ultralytics:latest
+```
+
+Activate
+```bash
+sudo docker start -ai training
+
+cd /workspace
+```
+
+After activating the virtual environment (or docker), upgrade pip (at least for Jetson Nano)
 ```bash
 pip install --upgrade pip
 ```
