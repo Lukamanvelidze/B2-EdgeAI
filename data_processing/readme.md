@@ -1,6 +1,6 @@
 ###  Data Preprocessing and Challenges
 
-During the project, several challenges arose — especially in transforming the dataset into a format that was both **semantically** and **syntactically** compatible with our training pipeline.  
+During the project, several challenges arose , especially in transforming the dataset into a format that was both **semantically** and **syntactically** compatible with our training pipeline.  
 To address these issues, we developed several custom scripts, each designed to solve a specific part of the preprocessing and labeling workflow:
 
 | Script                 | Description |
